@@ -83,7 +83,7 @@ I used a z of 2 to make a confidence interval of around 95%
 
 ## Part D - Interpretation 
 
-If we were to take many samples from the population and make a 95% confidence interval for each one, we could expect the population mean to be contained in 95 percent of the intervals
+If we were to take many samples from the population and make a 95% confidence interval for each one, we could expect the population difference in proportions to be contained in 95 percent of the intervals
 
 ## Part E - Standard Error
 

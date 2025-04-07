@@ -1,0 +1,196 @@
+---
+title: "Homework 7 - https://github.com/Henryblake2777/SDS315_homework7"
+author: "Henry Blake - hrb987"
+date: "2025-04-06"
+output:
+  pdf_document:
+    toc: True
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      eval = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      fig.align = "center")
+
+library(readr)
+library(ggplot2)
+library(tidyverse)
+library(rvest)
+library(mosaic)
+library(MatchIt)
+
+armfold <- read_csv('armfold.csv')
+vote <- read_csv('turnout.csv')
+```
+
+# Problem 1 - Armfolding
+
+## Part A - Examine Data
+
+```{r}
+armfold |>
+  filter(Sex == 'Male') |>
+  nrow()
+
+armfold |>
+  filter(Sex == 'Female') |>
+  nrow()
+
+armfold |>
+  filter(Sex == 'Male', LonR_fold == 1) |>
+  nrow() / 106
+
+armfold |>
+  filter(Sex == 'Female', LonR_fold == 1) |>
+  nrow() / 111
+```
+
+number of Males - 106
+number of Females - 111
+% of Males with Left Hand Top - .4717%
+% of Females with Left Hand Top - .4234
+
+## Part B - Difference in Proportions
+
+```{r}
+.4717 - .4234
+```
+
+
+male% - female% = .0483
+
+## Part C - Confidence Interval
+
+```{r}
+.0483 + 2 * sqrt((.4717)*(1-.4717)/106 + (.4234)*(1-.4234)/111)
+.0483 - 2 * sqrt((.4717)*(1-.4717)/106 + (.4234)*(1-.4234)/111)
+prop.test(x = c(50, 47), n = c(106, 111), correct = FALSE)
+```
+
+I used The standard error value for difference in proportions (sqrt((p1)*(1 - p1)/n1 + (p2)*(1 - p2)/n2))
+
+p1 = proportion of left top guys
+n1 = total guys
+p2 = proportion of left top girls
+n2 = total girls
+
+I used a z of 2 to make a confidence interval of around 95%
+
+95% Confint = (-.0839, .1805)
+
+## Part D - Interpretation 
+
+If we were to take many samples from the population and make a 95% confidence interval for each one, we could expect the population mean to be contained in 95 percent of the intervals
+
+## Part E - Standard Error
+
+The standard error that I calculated is measuring the average fluctuation of the mean differences in proportions between samples.
+
+## Part F - Sampling Distribution
+
+The sampling distribution represents the distribution of the sample differences in proportions. Between each sample, the sample average difference in proportion changes, but the population average stays constant
+
+## Part G - Normal Distribution
+
+The Central Limit Theorem states that as you sample from a population many times, as long as the samples are large enough, then the distribution of the sample means will be normal. This is exactly what we're doing in this experiment.
+
+## Part H - No Difference
+
+Although there is no significant statistical evidence to show that there is a difference between men and women because 0 is in the interval, the data shows that there could possibly be a difference as the confidence interval skews slightly positive. (-.01, .30)
+
+## Part I - Many Samples
+
+Yes, the confidence interval would be different because each sample would have slightly different data. However, if a 95 percent confidence interval of the difference in proportions is created for each sample, then around 95 percent of those samples would contain the true population mean.
+
+# Problem 2 - Get out the Vote
+
+## Part A - Examine Data
+
+```{r}
+vote |>
+  filter(GOTV_call == 1) |>
+  nrow()
+
+vote |>
+  filter(GOTV_call == 0) |>
+  nrow()
+
+vote |>
+  filter(voted1998 == 1, GOTV_call == 1) |>
+  nrow() / 247
+
+vote |>
+  filter(voted1998 == 1, GOTV_call == 0) |>
+  nrow() / 10582
+
+prop.test(x = c(160, 4701), n = c(247, 10582), correct = FALSE)
+```
+
+Prop of GOVT call that voted - 64.78%
+Prop of no GOVT that voted - 44.42%
+95% confint - (.1433, .2638)
+
+## Part B - Confounders
+
+```{r}
+aggregate(voted1996 ~ GOTV_call, data = vote, mean)
+aggregate(AGE ~ GOTV_call, data = vote, mean)
+aggregate(MAJORPTY ~ GOTV_call, data = vote, mean)
+```
+```{r}
+aggregate(voted1996 ~ voted1998, data = vote, mean)
+aggregate(AGE ~ voted1998, data = vote, mean)
+aggregate(MAJORPTY ~ voted1998, data = vote, mean)
+```
+```{r}
+
+table1 <- table(vote$MAJORPTY, vote$GOTV_call)
+table2 <- table(vote$MAJORPTY, vote$voted1998)
+table3 <- table(vote$voted1996, vote$GOTV_call)
+table4 <- table(vote$voted1996, vote$voted1998)
+prop.test(table1)
+prop.test(table2)
+
+prop.test(table3)
+prop.test(table4)
+
+t.test(vote$AGE ~ vote$GOTV_call, data = vote)
+t.test(vote$AGE ~ vote$voted1998, data = vote)
+```
+
+Since none of the confidence intervals, including both the correlation between the variable and 1998 voting turnout and the variable and receiving a GOTV_call, that means that all three of the variables are confounding variables. In addition, both confidence intervals per variables have the same sign, which means that all three confounding variables are boosting turnout rates for GOTV recipients, not decreasing.
+
+## Part C - Matching
+
+```{r}
+vote_match = matchit(GOTV_call ~ AGE + voted1996 + MAJORPTY, data = vote, ratio=5)
+vote_matched = match.data(vote_match)
+summary(vote_match)
+```
+
+The data is well matched because the Means of the treated and control under all three variables are equal. The standard mean diff is also close to 0 for all.
+
+```{r}
+vote_matched |>
+  filter(GOTV_call == 1) |>
+  nrow()
+
+vote_matched  |>
+  filter(GOTV_call == 0) |>
+  nrow()
+
+vote_matched  |>
+  filter(voted1998 == 1, GOTV_call == 1) |>
+  nrow()
+
+vote_matched  |>
+  filter(voted1998 == 1, GOTV_call == 0) |>
+  nrow()
+
+prop.test(x = c(160, 703), n = c(247, 1235), correct = FALSE)
+```
+
+with a p-value of .02 (below .05) and a 95% confidence interval of .0129 - .1442 (0 not in interval), there is intriguing statistical evidence that the GOTV calls made people more likely to vote in the 1998 election.
